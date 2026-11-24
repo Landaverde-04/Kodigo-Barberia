@@ -72,7 +72,7 @@ No cambiar core/base.html, sidebar, settings, modelos ni firmas ajenas sin coord
 
 ```text
 Lee AGENTS.md y la documentación obligatoria. Soy Wilber, principiante en Django.
-Mi alcance es barbers y dashboard. Sigue docs/tareas/WILBER.md.
+Mi alcance es barbers y dashboard. Sigue WILBER.md.
 Mi entrega concreta es: [indicar entrega]. Explícame los pasos y comandos.
 Reutiliza Barbero y Cita; no crees otros modelos ni otra lógica de citas.
 Las cancelaciones y finalizaciones deben usar los servicios de Samuel.

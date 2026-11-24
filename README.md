@@ -6,14 +6,16 @@ Sistema de una barbería desarrollado por cuatro integrantes en cinco días. Est
 
 | Integrante | Aplicaciones | Documento |
 |---|---|---|
-| Landaverde-04 | seguridad, core y arquitectura | [Tu trabajo](docs/tareas/LANDAVERDE-04.md) |
-| Samuel | appointments | [Citas y disponibilidad](docs/tareas/SAMUEL.md) |
-| Max | services, website | [Servicios y sitio público](docs/tareas/MAX.md) |
-| Wilber | barbers, dashboard | [Barberos, agenda y dashboard](docs/tareas/WILBER.md) |
+| Landaverde-04 | seguridad, core y arquitectura | [Tu trabajo](LANDAVERDE-04.md) |
+| Samuel | appointments | [Citas y disponibilidad](SAMUEL.md) |
+| Max | services, website | [Servicios y sitio público](MAX.md) |
+| Wilber | barbers, dashboard | [Barberos, agenda y dashboard](WILBER.md) |
 
 Antes de pasar tu tarea a una IA, indícale que lea [AGENTS.md](AGENTS.md), los documentos comunes y tu archivo individual. Cada tarea incluye un prompt. Ante dudas, incertidumbre o cambios que afecten trabajo ajeno, consultar al equipo antes de implementarlos.
 
 ## Documentación común
+
+- [Guía corta de GitHub con capturas](GUIA_GITHUB.md).
 
 - [Instalación Windows paso a paso](docs/INSTALACION_WINDOWS.md).
 - [Decisiones aprobadas y límites](docs/DECISIONES.md).

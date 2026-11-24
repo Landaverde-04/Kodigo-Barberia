@@ -51,7 +51,7 @@ Las decisiones aprobadas y cualquier acuerdo nuevo están registrados, los helpe
 
 ```text
 Lee AGENTS.md y la documentación obligatoria. Soy el responsable de arquitectura,
-core y seguridad. Revisa docs/tareas/LANDAVERDE-04.md y el código existente.
+core y seguridad. Revisa LANDAVERDE-04.md y el código existente.
 Mi entrega concreta de hoy es: [indicar entrega].
 Respeta seguridad.Usuario, los modelos y las firmas compartidas.
 Ante una duda o cambio que afecte a otro integrante, explica el impacto y

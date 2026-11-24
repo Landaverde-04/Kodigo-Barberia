@@ -2,7 +2,7 @@
 
 ## Lectura obligatoria
 
-Antes de modificar código, leer README.md, docs/DECISIONES.md, docs/MODELOS.md, docs/CONTRATOS.md, docs/TRABAJO_EN_EQUIPO.md y el archivo de la persona que solicita el trabajo en docs/tareas/. CLAUDE.md remite a estas mismas reglas; no representa una arquitectura distinta.
+Antes de modificar código, leer README.md, docs/DECISIONES.md, docs/MODELOS.md, docs/CONTRATOS.md, docs/TRABAJO_EN_EQUIPO.md y el archivo de la persona que solicita el trabajo, ubicado en la raíz: LANDAVERDE-04.md, SAMUEL.md, MAX.md o WILBER.md. CLAUDE.md remite a estas mismas reglas; no representa una arquitectura distinta.
 
 Consultar el código real para comprobar qué funciones existen. No confundir un contrato previsto con una implementación. No anunciar como funcional un módulo que solo tenga modelos o carpetas.
 

@@ -82,7 +82,7 @@ Datos comerciales faltantes; moneda definitiva; cualquier cambio a la política 
 
 ```text
 Lee AGENTS.md y la documentación obligatoria. Soy Max, principiante en Django.
-Mi alcance es services y website. Sigue docs/tareas/MAX.md.
+Mi alcance es services y website. Sigue MAX.md.
 Quiero completar esta entrega pequeña: [indicar entrega].
 Explícame los cambios y los comandos paso a paso. Usa los modelos existentes.
 No cambies configuración, modelos compartidos ni trabajo de Samuel o Wilber.

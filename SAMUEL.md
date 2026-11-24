@@ -60,7 +60,7 @@ Cambiar User, perfiles, catálogo, roles, archivos de configuración o plantilla
 
 ```text
 Lee AGENTS.md y los documentos obligatorios. Soy Samuel y trabajo en appointments.
-Sigue docs/tareas/SAMUEL.md. Mi entrega de hoy es: [indicar entrega].
+Sigue SAMUEL.md. Mi entrega de hoy es: [indicar entrega].
 No alteres modelos ni funciones acordadas para resolver una pantalla.
 Comparte las funciones de reserva/cancelación/finalización con Wilber.
 Si falta una decisión o se necesita un cambio ajeno, explica el impacto,

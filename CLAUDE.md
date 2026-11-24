@@ -9,7 +9,7 @@ La fuente común de instrucciones es [AGENTS.md](AGENTS.md). Leerla antes de mod
 3. [Modelos](docs/MODELOS.md): campos y restricciones.
 4. [Contratos](docs/CONTRATOS.md): funciones entregadas y pendientes.
 5. [Trabajo en equipo](docs/TRABAJO_EN_EQUIPO.md): Git y consulta de dudas.
-6. Documento individual en docs/tareas/: LANDAVERDE-04.md, SAMUEL.md, MAX.md o WILBER.md.
+6. Documento individual en la raíz: LANDAVERDE-04.md, SAMUEL.md, MAX.md o WILBER.md.
 
 ## Base fija
 
