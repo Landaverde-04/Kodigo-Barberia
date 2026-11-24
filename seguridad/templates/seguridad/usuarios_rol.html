@@ -38,14 +38,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <form method="post" class="d-inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="accion" value="quitar">
-                                <input type="hidden" name="usuario_id" value="{{ usuario.pk }}">
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Quitar del rol">
-                                    <i class="bi bi-person-dash"></i>
-                                </button>
-                            </form>
+                            <a href="{% url 'seguridad:editar_usuario' usuario.pk %}" class="btn btn-sm btn-outline-secondary">Editar cuenta</a>
                         </li>
                     {% endfor %}
                 </ul>
@@ -79,14 +72,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <form method="post" class="d-inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="accion" value="agregar">
-                                <input type="hidden" name="usuario_id" value="{{ usuario.pk }}">
-                                <button type="submit" class="btn btn-sm btn-outline-success" title="Agregar al rol">
-                                    <i class="bi bi-person-plus"></i>
-                                </button>
-                            </form>
+                            <a href="{% url 'seguridad:editar_usuario' usuario.pk %}" class="btn btn-sm btn-outline-secondary">Editar cuenta</a>
                         </li>
                     {% endfor %}
                 </ul>

@@ -1,5 +1,6 @@
 from pathlib import Path
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,9 +24,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     # Apps del proyecto
     'core',
     'seguridad',
+    'services.apps.ServicesConfig',
+    'barbers.apps.BarbersConfig',
+    'appointments.apps.AppointmentsConfig',
+    'website.apps.WebsiteConfig',
+    'dashboard.apps.DashboardConfig',
 ]
 
 MIDDLEWARE = [
@@ -60,13 +67,11 @@ TEMPLATES = [
 WSGI_APPLICATION = 'distrito_barber.wsgi.application'
 
 
-# Base de datos
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# PostgreSQL para desarrollo local. Configurar DATABASE_URL en .env.
+# No volver silenciosamente a SQLite si falta la configuración.
+DATABASES = {'default': env.db('DATABASE_URL')}
+if DATABASES['default']['ENGINE'] != 'django.db.backends.postgresql':
+    raise ImproperlyConfigured('DATABASE_URL debe apuntar a PostgreSQL.')
 
 
 # Validacion de contrasenas
@@ -98,6 +103,8 @@ USE_TZ = True
 
 # Archivos estaticos
 STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Modelo de usuario personalizado
 AUTH_USER_MODEL = 'seguridad.Usuario'

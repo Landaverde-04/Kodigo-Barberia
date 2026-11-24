@@ -20,3 +20,12 @@ local_settings.py
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Otros entornos locales y archivos privados
+.venv/
+env/
+.env.*
+!.env.example
+
+# Imágenes locales de cada integrante
+media/

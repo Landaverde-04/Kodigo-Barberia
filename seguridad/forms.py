@@ -2,16 +2,23 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import Group, Permission
 from django.contrib.auth.password_validation import validate_password
 from django import forms
+from django.db.models import Q
+from .roles import ROLES_NEGOCIO
 from .models import Usuario
 
 
-APPS_NEGOCIO = ['seguridad']
+APPS_NEGOCIO = ['seguridad', 'services', 'barbers', 'appointments']
+PERMISOS_NEGOCIO = Q(content_type__app_label__in=APPS_NEGOCIO) | Q(content_type__app_label='auth', codename__in=('view_group', 'change_group'))
 
 
 class RolForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['name'].disabled = True
+
     permissions = forms.ModelMultipleChoiceField(
         queryset=Permission.objects.filter(
-            content_type__app_label__in=APPS_NEGOCIO
+            PERMISOS_NEGOCIO
         ).select_related('content_type').order_by('content_type__app_label', 'codename'),
         required=False,
         label='Permisos',
@@ -23,13 +30,21 @@ class RolForm(forms.ModelForm):
         fields = ('name', 'permissions')
         labels = {'name': 'Nombre del rol'}
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Vendedor, Administrador'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Cliente, Barbero o Administrador'}),
         }
 
 
-class UsuarioCrearForm(UserCreationForm):
+class RolUnicoMixin:
+    def clean_groups(self):
+        grupos = self.cleaned_data['groups']
+        if grupos.count() > 1:
+            raise forms.ValidationError('Selecciona un solo rol de negocio.')
+        return grupos
+
+
+class UsuarioCrearForm(RolUnicoMixin, UserCreationForm):
     groups = forms.ModelMultipleChoiceField(
-        queryset=Group.objects.all(),
+        queryset=Group.objects.filter(name__in=ROLES_NEGOCIO),
         required=False,
         label='Roles',
         widget=forms.CheckboxSelectMultiple,
@@ -65,9 +80,9 @@ class ResetearPasswordForm(forms.Form):
         return cleaned_data
 
 
-class UsuarioEditarForm(forms.ModelForm):
+class UsuarioEditarForm(RolUnicoMixin, forms.ModelForm):
     groups = forms.ModelMultipleChoiceField(
-        queryset=Group.objects.all(),
+        queryset=Group.objects.filter(name__in=ROLES_NEGOCIO),
         required=False,
         label='Roles',
         widget=forms.CheckboxSelectMultiple,
