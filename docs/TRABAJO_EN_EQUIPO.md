@@ -30,7 +30,7 @@ Si existe una duda de requisitos, datos, permisos, estados, horario, precio, con
 
 El silencio no es aprobación. No modificar otra app «para que compile», añadir dependencias, cambiar campos, crear estados nuevos o sustituir PostgreSQL sin acuerdo. Los detalles ya definidos en los contratos se implementan sin volver a debatirlos. Para una duda puramente de sintaxis, consultar la documentación oficial antes de proponer cambios al equipo.
 
-## Git: ramas y revisión
+## Git: ramas y Pull Request
 
 Base inicial de integración: main, hasta que el usuario publique una rama develop y lo anuncie. Ningún documento debe dar por existente una rama que no se haya creado. Cuando develop esté publicada, las nuevas tareas parten de develop y sus PR apuntan a develop; main conserva entregas estables.
 
@@ -45,15 +45,16 @@ git switch -c feat/max-catalogo
 
 El ejemplo usa main mientras no exista develop. Sustituir la rama de trabajo según la entrega: feat/samuel-reservas, feat/max-catalogo, feat/wilber-agenda o feat/usuario-registro. No copiar una rama que ya se usó para otra entrega.
 
-Antes de crear un commit, revisar `git diff` y añadir solo los archivos del alcance. Ejemplo para Max:
+Antes de crear un commit, revisar `git status` y `git diff`. Desde la raíz, añadir todos los cambios de la entrega con `git add .` y comprobar lo añadido. Ejemplo para Max:
 
 ```powershell
-git add services/ website/
+git add .
+git diff --cached --stat
 git commit -m "feat: agrega catálogo público de servicios"
 git push -u origin feat/max-catalogo
 ```
 
-Abrir un Pull Request y pedir revisión. El usuario revisa cambios comunes y Samuel puede ayudar a revisar las entregas de Max y Wilber. No subir directamente a main/develop para saltarse la revisión. No usar force push ni borrar cambios ajenos.
+Abrir un solo Pull Request por entrega con todos sus cambios. El mismo autor comprueba los archivos y las pruebas y pulsa Merge pull request → Confirm merge, sin esperar revisión ni aprobación de otro compañero. Close pull request lo cierra sin integrar los cambios. Los cambios compartidos siguen requiriendo coordinación previa con el equipo. No usar force push ni borrar cambios ajenos.
 
 Si el equipo integra cambios mientras trabajas, guarda primero tu trabajo en un commit, ejecuta `git fetch origin` y coordina la incorporación de la rama base. Si aparece un conflicto, consulta al dueño del archivo; no elijas automáticamente todo lo propio o todo lo ajeno.
 

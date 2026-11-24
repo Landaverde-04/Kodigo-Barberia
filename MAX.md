@@ -72,7 +72,7 @@ Si habilitas imágenes, el formulario necesita enctype='multipart/form-data' y l
 - Cambiar un servicio no modifica el precio ni duración de una cita anterior.
 - La pantalla se puede usar en móvil y los enlaces llevan a rutas existentes.
 
-Ejecutar pruebas de tu módulo y las comprobaciones generales antes del PR. Pedir revisión al usuario o Samuel. No borrar tests o migraciones para que una comprobación pase.
+Ejecutar pruebas de tu módulo y las comprobaciones generales antes del PR. Integrar tu propia entrega mediante Pull Request, siguiendo GUIA_GITHUB.md, sin esperar revisión de otro compañero. No borrar tests o migraciones para que una comprobación pase.
 
 ## Qué debes consultar
 
