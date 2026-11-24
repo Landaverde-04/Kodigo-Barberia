@@ -1,0 +1,25 @@
+{% extends "core/base.html" %}
+{% block titulo %}Inicio · {{ nombre_barberia }}{% endblock %}
+{% block contenido %}
+<section class="barber-hero">
+    <div class="barber-hero-copy">
+        <p class="barber-eyebrow">BIENVENIDO A TU BARBERÍA</p>
+        <h1>El buen estilo<br>empieza aquí<span>.</span></h1>
+        <p class="barber-hero-description">Hola, {{ user.first_name|default:user.username }}. Este es tu espacio en {{ nombre_barberia }}: cuidado personal, atención cercana y cada detalle en su lugar.</p>
+        <a href="{% url 'seguridad:mi_perfil' %}" class="btn btn-primary px-4 py-2">Ver mi perfil <i class="bi bi-arrow-up-right ms-2" aria-hidden="true"></i></a>
+    </div>
+    <div class="barber-emblem" aria-hidden="true"><span class="barber-emblem-top">DISTRITO</span><i class="bi bi-scissors"></i><span class="barber-emblem-bottom">BARBER</span><small>CORTE · BARBA · ESTILO</small></div>
+</section>
+<div class="barber-section-heading"><div><p class="barber-eyebrow">TU ESPACIO</p><h2>Todo comienza con una buena atención.</h2></div><span class="barber-small-note">{{ nombre_barberia }}</span></div>
+<div class="row g-3 mb-4">
+    <div class="col-lg-4"><article class="barber-feature h-100"><span class="barber-feature-number">01</span><i class="bi bi-scissors barber-feature-icon" aria-hidden="true"></i><h3>Cortes con personalidad</h3><p>Del clásico al degradado: una experiencia pensada para encontrar tu estilo.</p></article></div>
+    <div class="col-lg-4"><article class="barber-feature h-100"><span class="barber-feature-number">02</span><i class="bi bi-stars barber-feature-icon" aria-hidden="true"></i><h3>El detalle hace la diferencia</h3><p>Perfilado, barba y acabados que completan un corte bien hecho.</p></article></div>
+    <div class="col-lg-4"><article class="barber-feature h-100"><span class="barber-feature-number">03</span><i class="bi bi-person-check barber-feature-icon" aria-hidden="true"></i><h3>Una cuenta, tu espacio</h3><p>Consulta tu información y mantén protegido el acceso a tu cuenta.</p><a href="{% url 'seguridad:mi_perfil' %}" class="barber-text-link">Ir a mi perfil <i class="bi bi-arrow-right" aria-hidden="true"></i></a></article></div>
+</div>
+{% if perms.seguridad.view_usuario or perms.auth.view_group %}
+<section class="barber-management"><div><p class="barber-eyebrow">ADMINISTRACIÓN</p><h2>El equipo detrás de cada corte.</h2><p>Gestiona las cuentas y los accesos de la barbería desde un solo lugar.</p></div><div class="d-flex gap-2 flex-wrap">
+{% if perms.seguridad.view_usuario %}<a href="{% url 'seguridad:lista_usuarios' %}" class="btn btn-primary">Gestionar cuentas</a>{% endif %}
+{% if perms.auth.view_group %}<a href="{% url 'seguridad:lista_roles' %}" class="btn btn-outline-secondary">Roles y permisos</a>{% endif %}
+</div></section>
+{% endif %}
+{% endblock %}
