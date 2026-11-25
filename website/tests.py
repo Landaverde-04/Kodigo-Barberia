@@ -35,3 +35,13 @@ class CatalogoServiciosTests(TestCase):
         respuesta = self.client.get(reverse('website:catalogo_servicios'))
 
         self.assertContains(respuesta, 'Por ahora no hay servicios disponibles.')
+
+
+class SitioPublicoTests(TestCase):
+    def test_portada_publica_enlaza_catalogos_e_inicio_de_sesion(self):
+        respuesta = self.client.get(reverse('website:portada'))
+
+        self.assertContains(respuesta, 'Distrito Barber')
+        for nombre in ('website:catalogo_servicios', 'seguridad:login'):
+            self.assertContains(respuesta, f'href="{reverse(nombre)}"')
+        self.assertNotContains(respuesta, 'Panel de gestión')
