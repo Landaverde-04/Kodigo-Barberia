@@ -1,0 +1,30 @@
+{% extends "website/base_publica.html" %}
+{% block titulo %}Barberos · {{ nombre_barberia }}{% endblock %}
+
+{% block contenido %}
+<section aria-labelledby="titulo-barberos">
+    <h1 id="titulo-barberos" class="mb-4">Barberos</h1>
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-3">
+        {% for barbero in barberos %}
+        <div class="col">
+            <article class="card h-100">
+                {% if barbero.foto %}
+                <div class="ratio ratio-16x9">
+                    <img src="{{ barbero.foto.url }}" class="object-fit-cover" alt="" loading="lazy">
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h2 class="h5 text-break">{{ barbero.nombre|default:"Barbero del equipo" }}</h2>
+                    {% if barbero.descripcion %}
+                    <div class="text-secondary text-break">{{ barbero.descripcion|linebreaksbr }}</div>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+        {% empty %}
+        <p class="col text-secondary">Por ahora no hay perfiles de barberos publicados.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
