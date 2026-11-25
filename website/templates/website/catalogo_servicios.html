@@ -1,0 +1,44 @@
+{% extends "website/base_publica.html" %}
+{% block titulo %}Servicios · {{ nombre_barberia }}{% endblock %}
+
+{% block contenido %}
+<section aria-labelledby="titulo-servicios">
+    <h1 id="titulo-servicios" class="mb-4">Servicios</h1>
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-3">
+        {% for servicio in servicios %}
+        <div class="col">
+            <article class="card h-100">
+                {% if servicio.imagen %}
+                <div class="ratio ratio-16x9">
+                    <img src="{{ servicio.imagen.url }}" class="object-fit-cover" alt="" loading="lazy">
+                </div>
+                {% else %}
+                <div class="bg-light border-bottom text-secondary text-center py-3">
+                    <i class="bi bi-scissors me-1" aria-hidden="true"></i> Sin imagen
+                </div>
+                {% endif %}
+                <div class="card-body d-flex flex-column gap-3">
+                    <h2 class="h5 text-break mb-0">{{ servicio.nombre }}</h2>
+                    {% if servicio.descripcion %}
+                    <div class="text-secondary text-break">{{ servicio.descripcion|linebreaksbr }}</div>
+                    {% endif %}
+                    <dl class="d-flex flex-wrap gap-4 border-top pt-3 mt-auto mb-0">
+                        <div>
+                            <dt class="small text-secondary">Precio</dt>
+                            <dd class="fw-semibold mb-0">{{ servicio.precio|floatformat:2 }} USD</dd>
+                        </div>
+                        <div>
+                            <dt class="small text-secondary">Duración</dt>
+                            <dd class="fw-semibold mb-0">{{ servicio.duracion_minutos }} min</dd>
+                        </div>
+                    </dl>
+                </div>
+            </article>
+        </div>
+        {% empty %}
+        <p class="col text-secondary">Por ahora no hay servicios disponibles.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
