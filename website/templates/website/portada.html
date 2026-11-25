@@ -1,0 +1,18 @@
+{% extends "website/base_publica.html" %}
+
+{% block contenido %}
+<section class="barber-hero" aria-labelledby="titulo-portada">
+    <div>
+        <h1 id="titulo-portada">{{ nombre_barberia }}</h1>
+        <p class="barber-hero-description">Explora los servicios de corte y barba y conoce al equipo que te atenderá.</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'website:catalogo_servicios' %}" class="btn btn-primary px-4 py-2">Ver servicios</a>
+        </div>
+    </div>
+    <div class="barber-emblem" aria-hidden="true">
+        <span class="barber-emblem-top">DISTRITO</span>
+        <i class="bi bi-scissors"></i>
+        <span class="barber-emblem-bottom">BARBER</span>
+    </div>
+</section>
+{% endblock %}
