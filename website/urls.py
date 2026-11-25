@@ -1,6 +1,9 @@
 from django.urls import path
 
+from . import views
+
 app_name = 'website'
 
-# Agregar las vistas de este módulo sin cambiar distrito_barber/urls.py.
-urlpatterns = []
+urlpatterns = [
+    path('servicios/', views.catalogo_servicios, name='catalogo_servicios'),
+]
