@@ -1,0 +1,58 @@
+{% extends "core/base.html" %}
+{% block titulo %}Mis citas · {{ nombre_barberia }}{% endblock %}
+
+{% block contenido %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <h1 class="h2 mb-0">Mis citas</h1>
+    <a href="{% url 'appointments:reservar' %}" class="btn btn-primary"><i class="bi bi-calendar-plus" aria-hidden="true"></i> Reservar cita</a>
+</div>
+
+<h2 class="h5 mb-3">Próximas</h2>
+{% if proximas %}
+<ul class="list-unstyled d-grid gap-3 mb-5">
+    {% for cita in proximas %}
+    <li class="card">
+        <div class="card-body d-flex flex-column flex-lg-row justify-content-between gap-3">
+            <div>
+                <a href="{% url 'appointments:detalle_cita' cita.pk %}" class="h6 d-block mb-1">{{ cita.nombre_servicio_reservado }}</a>
+                <div class="small text-secondary">
+                    {{ cita.fecha_inicio|date:"D j M Y" }} · {{ cita.fecha_inicio|time:"h:i A" }} ·
+                    {{ cita.barbero.usuario.get_full_name|default:cita.barbero.usuario.username }} ·
+                    {{ cita.precio_reservado|floatformat:2 }} USD
+                </div>
+            </div>
+            {% if cita.fecha_inicio > ahora %}
+            <div style="min-width: 260px;">{% include "appointments/_cancelar.html" %}</div>
+            {% else %}
+            <span class="small text-secondary align-self-center">En curso</span>
+            {% endif %}
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-secondary mb-5">No tienes citas próximas.</p>
+{% endif %}
+
+<h2 class="h5 mb-3">Historial</h2>
+{% if historial %}
+<div class="table-responsive">
+    <table class="table align-middle bg-white">
+        <thead><tr><th>Fecha</th><th>Servicio</th><th>Barbero</th><th>Precio</th><th>Estado</th></tr></thead>
+        <tbody>
+        {% for cita in historial %}
+        <tr>
+            <td><a href="{% url 'appointments:detalle_cita' cita.pk %}">{{ cita.fecha_inicio|date:"d/m/Y" }} {{ cita.fecha_inicio|time:"h:i A" }}</a></td>
+            <td>{{ cita.nombre_servicio_reservado }}</td>
+            <td>{{ cita.barbero.usuario.get_full_name|default:cita.barbero.usuario.username }}</td>
+            <td>{{ cita.precio_reservado|floatformat:2 }} USD</td>
+            <td>{% include "appointments/_estado.html" %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-secondary">Aún no hay citas en tu historial.</p>
+{% endif %}
+{% endblock %}

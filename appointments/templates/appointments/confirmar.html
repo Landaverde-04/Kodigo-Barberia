@@ -1,0 +1,35 @@
+{% extends "core/base.html" %}
+{% block titulo %}Confirmar reserva · {{ nombre_barberia }}{% endblock %}
+
+{% block contenido %}
+<h1 class="h2 mb-4">Revisa tu reserva</h1>
+
+<div class="card mb-4" style="max-width: 560px;">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-5 text-secondary fw-normal">Servicio</dt>
+            <dd class="col-7">{{ servicio.nombre }}</dd>
+            <dt class="col-5 text-secondary fw-normal">Barbero</dt>
+            <dd class="col-7">{{ barbero.usuario.get_full_name|default:barbero.usuario.username }}</dd>
+            <dt class="col-5 text-secondary fw-normal">Fecha</dt>
+            <dd class="col-7">{{ inicio|date:"l j \d\e F \d\e Y" }}</dd>
+            <dt class="col-5 text-secondary fw-normal">Hora</dt>
+            <dd class="col-7">{{ inicio|time:"h:i A" }} – {{ fin|time:"h:i A" }}</dd>
+            <dt class="col-5 text-secondary fw-normal">Duración</dt>
+            <dd class="col-7">{{ servicio.duracion_minutos }} min</dd>
+            <dt class="col-5 text-secondary fw-normal">Precio</dt>
+            <dd class="col-7 mb-0">{{ servicio.precio|floatformat:2 }} USD</dd>
+        </dl>
+    </div>
+</div>
+
+<form method="post" action="{% url 'appointments:confirmar_reserva' %}" class="d-flex flex-wrap gap-2">
+    {% csrf_token %}
+    <input type="hidden" name="servicio" value="{{ servicio.pk }}">
+    <input type="hidden" name="barbero" value="{{ barbero.pk }}">
+    <input type="hidden" name="inicio" value="{{ inicio_valor }}">
+    <button type="submit" class="btn btn-primary">Confirmar reserva</button>
+    <a href="{% url 'appointments:reservar' %}?servicio={{ servicio.pk }}&barbero={{ barbero.pk }}&fecha={{ inicio|date:'Y-m-d' }}"
+       class="btn btn-outline-secondary">Elegir otra hora</a>
+</form>
+{% endblock %}

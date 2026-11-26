@@ -1,0 +1,8 @@
+<form method="post" action="{% url 'appointments:cancelar_cita' cita.pk %}" class="d-flex flex-column gap-2">
+    {% csrf_token %}
+    <label for="motivo-{{ cita.pk }}" class="visually-hidden">Motivo de cancelación</label>
+    <textarea name="motivo" id="motivo-{{ cita.pk }}" rows="2" maxlength="500" class="form-control"
+              placeholder="Motivo (opcional)"></textarea>
+    <button type="submit" class="btn btn-outline-danger btn-sm align-self-start"
+            onclick="return confirm('¿Seguro que quieres cancelar esta cita?');">Cancelar cita</button>
+</form>

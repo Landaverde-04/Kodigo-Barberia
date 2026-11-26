@@ -1,6 +1,6 @@
 # Contratos entre módulos
 
-Estado: se distingue a continuación lo implementado de las interfaces que Samuel desarrollará. Ninguna pantalla debe anunciar éxito si el servicio correspondiente aún no existe. Las decisiones D-01/D-02/D-03 ya fueron confirmadas.
+Estado: las funciones de citas de Samuel ya están implementadas en appointments/services.py y appointments/selectors.py (rama feat/samuel-reservas). Ninguna pantalla debe anunciar éxito si el servicio correspondiente aún no existe. Las decisiones D-01/D-02/D-03 ya fueron confirmadas.
 
 ## Base técnica ya disponible
 
@@ -30,7 +30,7 @@ La raíz / conserva el inicio privado heredado. Max construye la portada públic
 
 ## Samuel: única capa de escritura de citas
 
-Ubicación prevista: appointments/services.py. Firmas:
+Implementado en appointments/services.py. Firmas:
 
 ```python
 reservar_cita(*, actor, servicio_id, barbero_id, fecha_inicio) -> Cita
@@ -40,7 +40,20 @@ completar_cita(*, actor, cita_id) -> Cita
 
 actor es un Usuario autenticado, no un identificador enviado por el formulario. barbero_id es la clave de Barbero, no la de Usuario. El cliente de la reserva se toma de actor. La función construye fecha_fin y las tres copias históricas usando Servicio.
 
-Cada operación válida devuelve la Cita guardada. Acceso prohibido: PermissionDenied. Datos o reglas inválidas: ValidationError con códigos estables a definir en esta app y documentar al implementarlos. Un ID inexistente no debe convertirse en un éxito: la vista devuelve 404. Capturar IntegrityError por superposición fuera del bloque atomic fallido y traducirlo a ValidationError; no mostrar errores SQL al usuario.
+Cada operación válida devuelve la Cita guardada. Acceso prohibido: PermissionDenied. Datos o reglas inválidas: ValidationError con estos códigos estables (consultar error.code):
+
+| Código | Cuándo |
+|---|---|
+| servicio_no_disponible | Servicio inexistente o inactivo |
+| barbero_no_disponible | Perfil, cuenta o rol del barbero no habilitados |
+| horario_ocupado | Se cruza con otra cita no cancelada del barbero (también por concurrencia) |
+| transicion_invalida | La cita ya no está CONFIRMED |
+| cancelacion_fuera_de_plazo | El cliente cancela a partir de fecha_inicio |
+| finalizacion_anticipada | Se completa antes de fecha_fin |
+| motivo_largo | Motivo de cancelación de más de 500 caracteres |
+| inicio_pasado, dia_cerrado, fuera_horario, inicio_desalineado, zona_horaria_requerida, duracion_invalida | Propagados de core.horarios.calcular_fin_validado |
+
+Solo un usuario con rol Cliente puede reservar; barbero y administrador reciben PermissionDenied (las reservas en nombre de otra persona siguen pendientes de acuerdo). cancelar_cita y completar_cita lanzan Cita.DoesNotExist para un ID inexistente. Un ID inexistente no debe convertirse en un éxito: la vista devuelve 404. Capturar IntegrityError por superposición fuera del bloque atomic fallido y traducirlo a ValidationError; no mostrar errores SQL al usuario.
 
 Toda escritura se realiza en transaction.atomic. Las transiciones bloquean la fila con select_for_update y revalidan estado y actor. La exclusión PostgreSQL evita dos reservas simultáneas del barbero; no sustituye la validación de permisos ni la comprobación amable de disponibilidad.
 
@@ -50,7 +63,7 @@ No crear reservas ni cambiar estado desde views de barbers/dashboard, signals, M
 
 ## Samuel: consultas reutilizables
 
-Ubicación prevista: appointments/selectors.py.
+Implementado en appointments/selectors.py.
 
 ```python
 obtener_horarios_disponibles(*, servicio_id, barbero_id, fecha) -> list
@@ -61,6 +74,18 @@ obtener_citas_cliente(*, actor)
 fecha es datetime.date en la zona horaria del negocio. La lista de horarios contiene datetime con zona horaria, ordenados. Los listados son QuerySets de Cita, ordenados por fecha_inicio y pk, limitados al actor correspondiente; no entregan toda la tabla para filtrar después en JavaScript.
 
 No depender de un formato JSON antes de acordarlo. Django Templates y formularios son suficientes para el MVP. Website consulta el catálogo; el botón de reservar enlaza con la ruta real de Samuel una vez creada y anunciada.
+
+Notas de implementación: obtener_horarios_disponibles devuelve [] si el servicio o el barbero no están habilitados o si el día está cerrado. obtener_agenda_barbero exige rol Barbero (PermissionDenied en otro caso) e incluye todos los estados; filtrar en la vista si solo se desean confirmadas.
+
+Rutas de cliente ya disponibles (namespace appointments, rol Cliente):
+
+| Ruta | Nombre | Uso |
+|---|---|---|
+| /citas/ | appointments:mis_citas | Próximas citas e historial |
+| /citas/reservar/ | appointments:reservar | Elegir servicio, barbero, fecha y hora |
+| /citas/reservar/confirmar/ | appointments:confirmar_reserva | Resumen (GET) y reserva (POST) |
+| /citas/<pk>/ | appointments:detalle_cita | Detalle de una cita propia |
+| /citas/<pk>/cancelar/ | appointments:cancelar_cita | Cancelación propia (solo POST) |
 
 ## Seguridad y horario: funciones ya implementadas
 
