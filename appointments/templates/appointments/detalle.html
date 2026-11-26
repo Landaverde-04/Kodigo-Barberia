@@ -1,0 +1,34 @@
+{% extends "core/base.html" %}
+{% block titulo %}Cita · {{ nombre_barberia }}{% endblock %}
+
+{% block contenido %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <h1 class="h2 mb-0">Detalle de la cita</h1>
+    <a href="{% url 'appointments:mis_citas' %}" class="btn btn-outline-secondary">Mis citas</a>
+</div>
+
+<div class="card" style="max-width: 560px;">
+    <div class="card-body">
+        <p>{% include "appointments/_estado.html" %}</p>
+        <dl class="row">
+            <dt class="col-5 text-secondary fw-normal">Servicio</dt>
+            <dd class="col-7">{{ cita.nombre_servicio_reservado }}</dd>
+            <dt class="col-5 text-secondary fw-normal">Barbero</dt>
+            <dd class="col-7">{{ cita.barbero.usuario.get_full_name|default:cita.barbero.usuario.username }}</dd>
+            <dt class="col-5 text-secondary fw-normal">Fecha</dt>
+            <dd class="col-7">{{ cita.fecha_inicio|date:"l j \d\e F \d\e Y" }}</dd>
+            <dt class="col-5 text-secondary fw-normal">Hora</dt>
+            <dd class="col-7">{{ cita.fecha_inicio|time:"h:i A" }} – {{ cita.fecha_fin|time:"h:i A" }}</dd>
+            <dt class="col-5 text-secondary fw-normal">Duración</dt>
+            <dd class="col-7">{{ cita.duracion_reservada }} min</dd>
+            <dt class="col-5 text-secondary fw-normal">Precio</dt>
+            <dd class="col-7">{{ cita.precio_reservado|floatformat:2 }} USD</dd>
+            {% if cita.motivo_cancelacion %}
+            <dt class="col-5 text-secondary fw-normal">Motivo de cancelación</dt>
+            <dd class="col-7 text-break">{{ cita.motivo_cancelacion }}</dd>
+            {% endif %}
+        </dl>
+        {% if puede_cancelar %}{% include "appointments/_cancelar.html" %}{% endif %}
+    </div>
+</div>
+{% endblock %}
