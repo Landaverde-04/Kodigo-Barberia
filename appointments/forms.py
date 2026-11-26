@@ -52,7 +52,8 @@ class BuscarHorarioForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['barbero'].queryset = barberos_habilitados()
-        self.fields['fecha'].widget.attrs['min'] = timezone.localdate().isoformat()
+        if 'fecha' in self.fields:  # ConfirmarReservaForm usa inicio en lugar de fecha.
+            self.fields['fecha'].widget.attrs['min'] = timezone.localdate().isoformat()
 
     def clean_fecha(self):
         fecha = self.cleaned_data['fecha']
