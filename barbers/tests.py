@@ -2,6 +2,7 @@ from datetime import datetime, time as hora_dia, timedelta
 from decimal import Decimal
 from io import BytesIO, StringIO
 from tempfile import TemporaryDirectory
+from unittest import mock
 
 from django.contrib import admin
 from django.contrib.auth import get_user_model
@@ -13,6 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
 
+from appointments.models import Cita, EstadoCita
 from appointments.services import cancelar_cita, reservar_cita
 from seguridad.roles import ADMINISTRADOR, BARBERO, CLIENTE
 from seguridad.services import asignar_rol, registrar_cliente
@@ -382,3 +384,235 @@ class AgendaBarberoTests(TestCase):
 
         self.assertContains(respuesta, 'no tiene un perfil de barbero asignado')
         self.assertEqual(list(respuesta.context['citas']), [])
+
+
+class AccionesCitaBarberoTests(TestCase):
+    @staticmethod
+    def dia_laboral_futuro():
+        fecha = timezone.localdate() + timedelta(days=1)
+        while fecha.weekday() == 6:
+            fecha += timedelta(days=1)
+        return fecha
+
+    @staticmethod
+    def instante(fecha, hora, minuto=0):
+        return timezone.make_aware(datetime.combine(fecha, hora_dia(hora, minuto)))
+
+    def en(self, momento):
+        return mock.patch('django.utils.timezone.now', return_value=momento)
+
+    def url_accion(self, nombre, cita=None, fecha=None):
+        cita = cita or self.cita_propia
+        fecha = fecha or self.fecha
+        ruta = reverse(f'barbers:{nombre}', args=[cita.pk])
+        return f'{ruta}?fecha={fecha.isoformat()}'
+
+    @classmethod
+    def setUpTestData(cls):
+        call_command('preparar_roles', stdout=StringIO())
+        usuarios = get_user_model().objects
+        cls.admin = usuarios.create_superuser(username='admin_acciones', password=CLAVE_AGENDA)
+        cls.cliente = registrar_cliente(
+            username='cliente_acciones', password=CLAVE_AGENDA, first_name='Clara',
+        )
+        cls.usuario_barbero = registrar_cliente(
+            username='barbero_acciones', password=CLAVE_AGENDA, first_name='Ana',
+        )
+        cls.perfil = asignar_rol(
+            actor=cls.admin, usuario=cls.usuario_barbero, rol=BARBERO,
+        ).perfil_barbero
+        cls.usuario_otro = registrar_cliente(
+            username='otro_barbero_acciones', password=CLAVE_AGENDA,
+        )
+        cls.otro_perfil = asignar_rol(
+            actor=cls.admin, usuario=cls.usuario_otro, rol=BARBERO,
+        ).perfil_barbero
+        cls.servicio = Servicio.objects.create(
+            nombre='Corte acciones', precio=Decimal('5.00'), duracion_minutos=30,
+        )
+        cls.fecha = cls.dia_laboral_futuro()
+        cls.cita_propia = reservar_cita(
+            actor=cls.cliente, servicio_id=cls.servicio.pk,
+            barbero_id=cls.perfil.pk, fecha_inicio=cls.instante(cls.fecha, 9),
+        )
+        reservar_cita(
+            actor=cls.cliente, servicio_id=cls.servicio.pk,
+            barbero_id=cls.otro_perfil.pk, fecha_inicio=cls.instante(cls.fecha, 9),
+        )
+        cls.cita_segunda = reservar_cita(
+            actor=cls.cliente, servicio_id=cls.servicio.pk,
+            barbero_id=cls.perfil.pk, fecha_inicio=cls.instante(cls.fecha, 10, 30),
+        )
+        cls.cita_tercera = reservar_cita(
+            actor=cls.cliente, servicio_id=cls.servicio.pk,
+            barbero_id=cls.perfil.pk, fecha_inicio=cls.instante(cls.fecha, 11),
+        )
+
+    def test_sesion_permiso_metodo_y_csrf(self):
+        rutas = (
+            reverse('barbers:cancelar_cita', args=[self.cita_propia.pk]),
+            reverse('barbers:completar_cita', args=[self.cita_propia.pk]),
+        )
+        for ruta in rutas:
+            with self.subTest(ruta=ruta):
+                self.assertRedirects(
+                    self.client.post(ruta), f"{reverse('seguridad:login')}?next={ruta}",
+                )
+
+        self.client.force_login(self.cliente)
+        for ruta in rutas:
+            with self.subTest(ruta=ruta):
+                self.assertEqual(self.client.post(ruta).status_code, 403)
+
+        self.client.force_login(self.usuario_barbero)
+        for ruta in rutas:
+            with self.subTest(ruta=ruta):
+                self.assertEqual(self.client.get(ruta).status_code, 405)
+
+        cliente_csrf = Client(enforce_csrf_checks=True)
+        cliente_csrf.force_login(self.usuario_barbero)
+        for ruta in rutas:
+            with self.subTest(ruta=ruta):
+                respuesta = cliente_csrf.post(f'{ruta}?fecha={self.fecha.isoformat()}')
+                self.assertEqual(respuesta.status_code, 403)
+
+        self.cita_propia.refresh_from_db()
+        self.assertEqual(self.cita_propia.estado, EstadoCita.CONFIRMADA)
+
+    def test_barbero_asignado_cancela_con_auditoria_y_vuelve_a_la_fecha(self):
+        self.client.force_login(self.usuario_barbero)
+
+        respuesta = self.client.post(
+            self.url_accion('cancelar_cita'), {'motivo': '  No puedo asistir  '},
+        )
+        destino = f"{reverse('barbers:agenda')}?fecha={self.fecha.isoformat()}"
+        self.assertRedirects(respuesta, destino, fetch_redirect_response=False)
+
+        self.cita_propia.refresh_from_db()
+        self.assertEqual(self.cita_propia.estado, EstadoCita.CANCELADA)
+        self.assertEqual(self.cita_propia.cancelada_por, self.usuario_barbero)
+        self.assertEqual(self.cita_propia.motivo_cancelacion, 'No puedo asistir')
+        self.assertIsNotNone(self.cita_propia.fecha_cancelacion)
+        self.assertIsNone(self.cita_propia.completada_por)
+
+        respuesta = self.client.get(destino)
+        self.assertContains(respuesta, 'La cita fue cancelada.')
+        self.assertContains(respuesta, 'Cancelada')
+
+    def test_otro_barbero_recibe_404_y_no_cambia_la_cita(self):
+        self.client.force_login(self.usuario_otro)
+
+        with self.en(self.cita_propia.fecha_fin):
+            respuesta = self.client.post(self.url_accion('cancelar_cita'), {'motivo': 'intruso'})
+            self.assertEqual(respuesta.status_code, 404)
+            respuesta = self.client.post(self.url_accion('completar_cita'))
+            self.assertEqual(respuesta.status_code, 404)
+
+        self.cita_propia.refresh_from_db()
+        self.assertEqual(self.cita_propia.estado, EstadoCita.CONFIRMADA)
+        self.assertIsNone(self.cita_propia.cancelada_por)
+        self.assertIsNone(self.cita_propia.completada_por)
+
+    def test_id_inexistente_devuelve_404(self):
+        self.client.force_login(self.usuario_barbero)
+
+        for nombre in ('cancelar_cita', 'completar_cita'):
+            with self.subTest(nombre=nombre):
+                ruta = reverse(f'barbers:{nombre}', args=[999999])
+                respuesta = self.client.post(f'{ruta}?fecha={self.fecha.isoformat()}')
+                self.assertEqual(respuesta.status_code, 404)
+
+    def test_completar_antes_del_fin_muestra_error_de_samuel(self):
+        self.client.force_login(self.usuario_barbero)
+
+        with self.en(self.cita_propia.fecha_fin - timedelta(minutes=1)):
+            respuesta = self.client.post(self.url_accion('completar_cita'))
+
+        destino = f"{reverse('barbers:agenda')}?fecha={self.fecha.isoformat()}"
+        self.assertRedirects(respuesta, destino, fetch_redirect_response=False)
+        self.cita_propia.refresh_from_db()
+        self.assertEqual(self.cita_propia.estado, EstadoCita.CONFIRMADA)
+        self.assertIsNone(self.cita_propia.completada_por)
+        self.assertContains(
+            self.client.get(destino),
+            'La cita se puede completar cuando llegue su hora de fin.',
+        )
+
+    def test_completar_desde_el_fin_con_auditoria(self):
+        self.client.force_login(self.usuario_barbero)
+
+        with self.en(self.cita_propia.fecha_fin):
+            respuesta = self.client.post(self.url_accion('completar_cita'))
+
+        destino = f"{reverse('barbers:agenda')}?fecha={self.fecha.isoformat()}"
+        self.assertRedirects(respuesta, destino, fetch_redirect_response=False)
+
+        self.cita_propia.refresh_from_db()
+        self.assertEqual(self.cita_propia.estado, EstadoCita.COMPLETADA)
+        self.assertEqual(self.cita_propia.completada_por, self.usuario_barbero)
+        self.assertIsNotNone(self.cita_propia.fecha_finalizacion)
+        self.assertIsNone(self.cita_propia.cancelada_por)
+
+        respuesta = self.client.get(destino)
+        self.assertContains(respuesta, 'La cita fue completada.')
+        self.assertContains(respuesta, 'Completada')
+
+    def test_transicion_repetida_y_motivo_largo_muestran_mensajes(self):
+        self.client.force_login(self.usuario_barbero)
+        destino = f"{reverse('barbers:agenda')}?fecha={self.fecha.isoformat()}"
+
+        self.assertEqual(
+            self.client.post(self.url_accion('cancelar_cita'), {'motivo': 'primera'}).status_code,
+            302,
+        )
+        self.client.get(destino)
+
+        respuesta = self.client.post(self.url_accion('cancelar_cita'), {'motivo': 'otra'})
+        self.assertRedirects(respuesta, destino, fetch_redirect_response=False)
+        self.assertContains(
+            self.client.get(destino), 'Solo se pueden cancelar citas confirmadas.',
+        )
+
+        respuesta = self.client.post(
+            self.url_accion('cancelar_cita', cita=self.cita_segunda), {'motivo': 'x' * 501},
+        )
+        self.assertRedirects(respuesta, destino, fetch_redirect_response=False)
+        self.assertContains(
+            self.client.get(destino), 'El motivo admite como máximo 500 caracteres.',
+        )
+        self.cita_segunda.refresh_from_db()
+        self.assertEqual(self.cita_segunda.estado, EstadoCita.CONFIRMADA)
+
+    def test_solo_citas_confirmadas_muestran_acciones(self):
+        self.client.force_login(self.usuario_barbero)
+        destino = f"{reverse('barbers:agenda')}?fecha={self.fecha.isoformat()}"
+
+        respuesta = self.client.get(destino)
+        self.assertContains(respuesta, 'Cancelar')
+        self.assertContains(respuesta, 'Completar')
+
+        cancelar_cita(actor=self.usuario_barbero, cita_id=self.cita_propia.pk)
+
+        respuesta = self.client.get(destino)
+        self.assertContains(respuesta, 'Sin acciones', count=1)
+        self.assertNotContains(
+            respuesta, reverse('barbers:cancelar_cita', args=[self.cita_propia.pk]),
+        )
+        self.assertNotContains(
+            respuesta, reverse('barbers:completar_cita', args=[self.cita_propia.pk]),
+        )
+
+    def test_fecha_invalida_o_ausente_usa_la_de_la_cita(self):
+        self.client.force_login(self.usuario_barbero)
+
+        casos = (
+            (self.cita_segunda, ''),
+            (self.cita_tercera, '?fecha=no-valida'),
+        )
+        for cita, consulta in casos:
+            with self.subTest(cita=cita.pk, consulta=consulta):
+                ruta = reverse('barbers:cancelar_cita', args=[cita.pk])
+                respuesta = self.client.post(f'{ruta}{consulta}')
+                fecha = timezone.localtime(cita.fecha_inicio).date().isoformat()
+                destino = f"{reverse('barbers:agenda')}?fecha={fecha}"
+                self.assertRedirects(respuesta, destino, fetch_redirect_response=False)
