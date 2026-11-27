@@ -1,0 +1,54 @@
+{% extends "core/base.html" %}
+{% block titulo %}Barberos · {{ nombre_barberia }}{% endblock %}
+
+{% block contenido %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="h2 mb-1">Barberos</h1>
+        <p class="text-secondary mb-0">Perfiles registrados en la barbería.</p>
+    </div>
+</div>
+
+{% if perfiles %}
+<div class="table-responsive">
+    <table class="table align-middle bg-white">
+        <thead>
+            <tr>
+                <th>Barbero</th>
+                <th>Descripción</th>
+                <th>Foto</th>
+                <th>Estado</th>
+                <th class="text-end">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for perfil in perfiles %}
+            <tr>
+                <td>
+                    <span class="fw-semibold">{{ perfil.usuario.get_full_name|default:perfil.usuario.username }}</span>
+                    <div class="small text-secondary">{{ perfil.usuario.username }}</div>
+                </td>
+                <td>{{ perfil.descripcion|truncatechars:120|default:"Sin descripción" }}</td>
+                <td>
+                    {% if perfil.foto %}
+                    <img src="{{ perfil.foto.url }}" alt="" class="rounded object-fit-cover"
+                         style="width: 48px; height: 48px;">
+                    {% else %}
+                    <span class="small text-secondary">Sin foto</span>
+                    {% endif %}
+                </td>
+                <td>{% if perfil.activo %}Activo{% else %}Inactivo{% endif %}</td>
+                <td class="text-end">
+                    <a href="{% url 'barbers:editar_perfil' perfil.pk %}" class="btn btn-sm btn-outline-primary">
+                        Editar perfil
+                    </a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="text-secondary">Todavía no hay perfiles de barbero registrados. La asignación se realiza desde Cuentas de la barbería.</p>
+{% endif %}
+{% endblock %}
