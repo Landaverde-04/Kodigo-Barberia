@@ -1,3 +1,5 @@
+from datetime import datetime, time as hora_dia, timedelta
+from decimal import Decimal
 from io import BytesIO, StringIO
 from tempfile import TemporaryDirectory
 
@@ -8,9 +10,13 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.test import Client, RequestFactory, TestCase
 from django.urls import reverse
+from django.utils import timezone
 from PIL import Image
 
+from appointments.services import cancelar_cita, reservar_cita
 from seguridad.roles import ADMINISTRADOR, BARBERO, CLIENTE
+from seguridad.services import asignar_rol, registrar_cliente
+from services.models import Servicio
 
 from .models import Barbero
 from .selectors import listar_perfiles, obtener_perfil_de_usuario
@@ -212,3 +218,167 @@ class PerfilesBarberoTests(TestCase):
         self.assertFalse(modelo_admin.has_add_permission(peticion))
         self.assertFalse(modelo_admin.has_change_permission(peticion, self.perfil))
         self.assertFalse(modelo_admin.has_delete_permission(peticion, self.perfil))
+
+
+CLAVE_AGENDA = 'ClaveAgendaTemporal_2030'
+
+
+class AgendaBarberoTests(TestCase):
+    @staticmethod
+    def dia_laboral_futuro():
+        fecha = timezone.localdate() + timedelta(days=1)
+        while fecha.weekday() == 6:
+            fecha += timedelta(days=1)
+        return fecha
+
+    @staticmethod
+    def instante(fecha, hora, minuto=0):
+        return timezone.make_aware(datetime.combine(fecha, hora_dia(hora, minuto)))
+
+    @classmethod
+    def setUpTestData(cls):
+        call_command('preparar_roles', stdout=StringIO())
+        usuarios = get_user_model().objects
+        cls.admin = usuarios.create_superuser(username='admin_agenda', password=CLAVE_AGENDA)
+        cls.cliente = registrar_cliente(
+            username='cliente_agenda', password=CLAVE_AGENDA, first_name='Clara',
+        )
+        cls.otro_cliente = registrar_cliente(
+            username='otro_cliente_agenda', password=CLAVE_AGENDA, first_name='Diego',
+        )
+        cls.usuario_barbero = registrar_cliente(
+            username='barbero_agenda', password=CLAVE_AGENDA, first_name='Ana',
+        )
+        cls.perfil = asignar_rol(
+            actor=cls.admin, usuario=cls.usuario_barbero, rol=BARBERO,
+        ).perfil_barbero
+        cls.usuario_otro = registrar_cliente(
+            username='otro_barbero_agenda', password=CLAVE_AGENDA,
+        )
+        cls.otro_perfil = asignar_rol(
+            actor=cls.admin, usuario=cls.usuario_otro, rol=BARBERO,
+        ).perfil_barbero
+        cls.servicio = Servicio.objects.create(
+            nombre='Corte agenda', precio=Decimal('5.00'), duracion_minutos=30,
+        )
+        cls.fecha = cls.dia_laboral_futuro()
+        cls.inicio = cls.instante(cls.fecha, 9)
+        cls.cita_propia = reservar_cita(
+            actor=cls.cliente, servicio_id=cls.servicio.pk,
+            barbero_id=cls.perfil.pk, fecha_inicio=cls.inicio,
+        )
+        reservar_cita(
+            actor=cls.otro_cliente, servicio_id=cls.servicio.pk,
+            barbero_id=cls.otro_perfil.pk, fecha_inicio=cls.inicio,
+        )
+
+    def test_acceso_privado_por_rol(self):
+        url = reverse('barbers:agenda')
+        self.assertRedirects(self.client.get(url), f"{reverse('seguridad:login')}?next={url}")
+
+        self.client.force_login(self.cliente)
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.get(url).status_code, 403)
+
+        self.client.force_login(self.usuario_barbero)
+        respuesta = self.client.get(url)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, 'barbers/agenda.html')
+        self.assertTemplateUsed(respuesta, 'core/base.html')
+
+    def test_sin_fecha_usa_hoy(self):
+        self.client.force_login(self.usuario_barbero)
+
+        respuesta = self.client.get(reverse('barbers:agenda'))
+
+        self.assertEqual(respuesta.context['fecha'], timezone.localdate())
+        self.assertContains(respuesta, timezone.localdate().isoformat())
+
+    def test_fecha_valida_solo_citas_propias_ordenadas(self):
+        segunda = reservar_cita(
+            actor=self.cliente, servicio_id=self.servicio.pk,
+            barbero_id=self.perfil.pk, fecha_inicio=self.instante(self.fecha, 10, 30),
+        )
+        self.client.force_login(self.usuario_barbero)
+
+        respuesta = self.client.get(reverse('barbers:agenda'), {
+            'fecha': self.fecha.isoformat(), 'barbero_id': self.otro_perfil.pk,
+        })
+
+        self.assertEqual(list(respuesta.context['citas']), [self.cita_propia, segunda])
+        self.assertContains(respuesta, 'Clara')
+        self.assertContains(respuesta, 'Corte agenda')
+        self.assertContains(respuesta, '30 min')
+        self.assertContains(respuesta, 'Confirmada')
+        self.assertNotContains(respuesta, 'Diego')
+
+    def test_muestra_snapshots_no_catalogo_actual(self):
+        self.servicio.nombre = 'Corte actualizado'
+        self.servicio.duracion_minutos = 45
+        self.servicio.precio = Decimal('9.00')
+        self.servicio.save()
+        self.client.force_login(self.usuario_barbero)
+
+        respuesta = self.client.get(reverse('barbers:agenda'), {'fecha': self.fecha.isoformat()})
+
+        self.assertContains(respuesta, 'Corte agenda')
+        self.assertContains(respuesta, '30 min')
+        self.assertNotContains(respuesta, 'Corte actualizado')
+        self.assertNotContains(respuesta, '45 min')
+
+    def test_fecha_invalida_muestra_error_comprensible(self):
+        self.client.force_login(self.usuario_barbero)
+
+        for valor in ('no-es-fecha', '2026-13-45', '01/02/2026', '2026-1-2'):
+            with self.subTest(valor=valor):
+                respuesta = self.client.get(reverse('barbers:agenda'), {'fecha': valor})
+                self.assertEqual(respuesta.status_code, 200)
+                self.assertContains(respuesta, 'Escribe una fecha válida en formato AAAA-MM-DD')
+                self.assertIsNone(respuesta.context['citas'])
+                self.assertNotContains(respuesta, 'No hay citas para esta fecha.')
+
+    def test_navegacion_a_fechas_anteriores_y_posteriores(self):
+        self.client.force_login(self.usuario_barbero)
+
+        respuesta = self.client.get(reverse('barbers:agenda'), {'fecha': self.fecha.isoformat()})
+
+        self.assertContains(respuesta, f"?fecha={(self.fecha - timedelta(days=1)).isoformat()}")
+        self.assertContains(respuesta, f"?fecha={(self.fecha + timedelta(days=1)).isoformat()}")
+        self.assertContains(respuesta, 'Anterior')
+        self.assertContains(respuesta, 'Siguiente')
+        self.assertContains(respuesta, 'Hoy')
+
+    def test_fecha_sin_citas_muestra_mensaje(self):
+        self.client.force_login(self.usuario_barbero)
+
+        respuesta = self.client.get(
+            reverse('barbers:agenda'),
+            {'fecha': (self.fecha + timedelta(days=2)).isoformat()},
+        )
+
+        self.assertContains(respuesta, 'No hay citas para esta fecha.')
+
+    def test_cita_cancelada_conserva_registro_y_estado(self):
+        cancelar_cita(actor=self.usuario_barbero, cita_id=self.cita_propia.pk)
+        self.client.force_login(self.usuario_barbero)
+
+        respuesta = self.client.get(reverse('barbers:agenda'), {'fecha': self.fecha.isoformat()})
+
+        self.assertContains(respuesta, 'Corte agenda')
+        self.assertContains(respuesta, 'Cancelada')
+
+    def test_post_no_esta_permitido(self):
+        self.client.force_login(self.usuario_barbero)
+
+        self.assertEqual(self.client.post(reverse('barbers:agenda')).status_code, 405)
+
+    def test_barbero_sin_perfil_muestra_aviso(self):
+        cuenta = get_user_model().objects.create_user(username='barbero_sin_perfil_agenda')
+        cuenta.groups.add(Group.objects.get(name=BARBERO))
+        self.client.force_login(cuenta)
+
+        respuesta = self.client.get(reverse('barbers:agenda'), {'fecha': self.fecha.isoformat()})
+
+        self.assertContains(respuesta, 'no tiene un perfil de barbero asignado')
+        self.assertEqual(list(respuesta.context['citas']), [])

@@ -1,0 +1,83 @@
+{% extends "core/base.html" %}
+{% block titulo %}Mi agenda · {{ nombre_barberia }}{% endblock %}
+
+{% block contenido %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="h2 mb-1">Mi agenda</h1>
+        <p class="text-secondary mb-0">Consulta tus citas por fecha. La hora se muestra en horario local de la barbería.</p>
+    </div>
+    <a href="{% url 'barbers:mi_perfil' %}" class="btn btn-outline-secondary"><i class="bi bi-person-badge" aria-hidden="true"></i> Mi perfil</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4 col-lg-3">
+                <label for="{{ form.fecha.id_for_label }}" class="form-label">{{ form.fecha.label }}</label>
+                {{ form.fecha }}
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search" aria-hidden="true"></i> Ver agenda</button>
+            </div>
+        </form>
+
+        {% if form.fecha.errors %}
+        <div class="alert alert-danger mt-3 mb-0" role="alert">
+            {% for error in form.fecha.errors %}<p class="mb-0">{{ error }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if fecha %}
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'barbers:agenda' %}?fecha={{ anterior|date:'Y-m-d' }}"><i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior</a>
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'barbers:agenda' %}?fecha={{ hoy|date:'Y-m-d' }}">Hoy</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'barbers:agenda' %}?fecha={{ siguiente|date:'Y-m-d' }}">Siguiente <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if not perfil %}
+<div class="alert alert-warning" role="alert">
+    Tu cuenta no tiene un perfil de barbero asignado. Pide al administrador que lo asigne para ver tus citas.
+</div>
+{% endif %}
+
+{% if not form.errors %}
+    {% if citas %}
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="h5 mb-1">Citas del {{ fecha|date:'d/m/Y' }}</h2>
+            <p class="small text-secondary mb-3">Servicio y duración guardados al reservar; no se recalculan si el catálogo cambia.</p>
+            <div class="table-responsive">
+                <table class="table align-middle bg-white">
+                    <thead>
+                        <tr>
+                            <th scope="col">Hora</th>
+                            <th scope="col">Cliente</th>
+                            <th scope="col">Servicio reservado</th>
+                            <th scope="col">Duración</th>
+                            <th scope="col">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for cita in citas %}
+                        <tr>
+                            <td>{{ cita.fecha_inicio|time:"H:i" }}</td>
+                            <td>{{ cita.cliente.get_full_name|default:cita.cliente.username }}</td>
+                            <td>{{ cita.nombre_servicio_reservado }}</td>
+                            <td>{{ cita.duracion_reservada }} min</td>
+                            <td><span class="badge bg-secondary">{{ cita.get_estado_display }}</span></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-secondary">No hay citas para esta fecha.</p>
+    {% endif %}
+{% endif %}
+{% endblock %}
