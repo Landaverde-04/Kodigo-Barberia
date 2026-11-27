@@ -59,6 +59,7 @@
                             <th scope="col">Servicio reservado</th>
                             <th scope="col">Duración</th>
                             <th scope="col">Estado</th>
+                            <th scope="col">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -69,6 +70,27 @@
                             <td>{{ cita.nombre_servicio_reservado }}</td>
                             <td>{{ cita.duracion_reservada }} min</td>
                             <td><span class="badge bg-secondary">{{ cita.get_estado_display }}</span></td>
+                            <td>
+                                {% if cita.estado == estado_confirmada %}
+                                <div class="d-flex flex-column gap-2">
+                                    <form method="post" action="{% url 'barbers:cancelar_cita' cita.pk %}?fecha={{ fecha|date:'Y-m-d' }}">
+                                        {% csrf_token %}
+                                        {{ form_cancelar.motivo }}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger mt-1">
+                                            <i class="bi bi-x-circle" aria-hidden="true"></i> Cancelar
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'barbers:completar_cita' cita.pk %}?fecha={{ fecha|date:'Y-m-d' }}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            <i class="bi bi-check-circle" aria-hidden="true"></i> Completar
+                                        </button>
+                                    </form>
+                                </div>
+                                {% else %}
+                                <span class="text-secondary small">Sin acciones</span>
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endfor %}
                     </tbody>
