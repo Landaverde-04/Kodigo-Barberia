@@ -64,9 +64,8 @@ def editar_perfil(request, pk):
     else:
         form = PerfilBarberoForm(instance=perfil)
 
-    return render(request, 'barbers/form_perfil.html', {
+    return render(request, 'barbers/editar_perfil.html', {
         'form': form,
         'perfil': perfil,
-        'accion': 'Editar',
         'volver_url': reverse('barbers:lista_barberos'),
     })

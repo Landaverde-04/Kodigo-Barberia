@@ -77,6 +77,8 @@ class PerfilesBarberoTests(TestCase):
 
         respuesta = self.client.get(url)
         self.assertEqual(respuesta.status_code, 200)
+        self.assertTemplateUsed(respuesta, 'barbers/mi_perfil.html')
+        self.assertTemplateUsed(respuesta, 'core/base.html')
         self.assertContains(respuesta, 'Cortes clasicos')
         self.assertContains(respuesta, 'Ana Morales')
         self.assertNotContains(respuesta, self.otro.username)
@@ -114,7 +116,11 @@ class PerfilesBarberoTests(TestCase):
             self.client.get(reverse('barbers:lista_barberos')), 'Ana Morales',
         )
         url = reverse('barbers:editar_perfil', args=[self.otro_perfil.pk])
-        self.assertContains(self.client.get(url), 'Editar perfil')
+        respuesta = self.client.get(url)
+        self.assertTemplateUsed(respuesta, 'barbers/editar_perfil.html')
+        self.assertTemplateUsed(respuesta, 'core/base.html')
+        self.assertContains(respuesta, 'Editar perfil')
+        self.assertContains(respuesta, 'Panel de gestión')
 
         self.assertRedirects(
             self.client.post(url, {'descripcion': 'Perfil editado por admin'}),
