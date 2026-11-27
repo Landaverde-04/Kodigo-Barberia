@@ -1,0 +1,154 @@
+{% extends "core/base.html" %}
+{% block titulo %}Panel administrativo · {{ nombre_barberia }}{% endblock %}
+
+{% block contenido %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="h2 mb-1">Panel administrativo</h1>
+        <p class="text-secondary mb-0">Cuentas por rol y citas derivadas de la base de datos. Los conteos de citas usan la fecha local de inicio.</p>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4 col-lg-3">
+                <label for="{{ form.fecha.id_for_label }}" class="form-label">{{ form.fecha.label }}</label>
+                {{ form.fecha }}
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search" aria-hidden="true"></i> Ver panel</button>
+            </div>
+            {% if ver_todas %}
+            <input type="hidden" name="ver" value="todas">
+            {% endif %}
+        </form>
+
+        {% if form.fecha.errors %}
+        <div class="alert alert-danger mt-3 mb-0" role="alert">
+            {% for error in form.fecha.errors %}<p class="mb-0">{{ error }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if fecha %}
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'dashboard:panel' %}?fecha={{ anterior|date:'Y-m-d' }}{% if ver_todas %}&amp;ver=todas{% endif %}"><i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior</a>
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'dashboard:panel' %}?fecha={{ hoy|date:'Y-m-d' }}{% if ver_todas %}&amp;ver=todas{% endif %}">Hoy</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'dashboard:panel' %}?fecha={{ siguiente|date:'Y-m-d' }}{% if ver_todas %}&amp;ver=todas{% endif %}">Siguiente <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+            {% if ver_todas %}
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'dashboard:panel' %}?fecha={{ fecha|date:'Y-m-d' }}">Ver solo esta fecha</a>
+            {% else %}
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'dashboard:panel' %}?fecha={{ fecha|date:'Y-m-d' }}&amp;ver=todas">Ver todas las fechas</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if not form.errors %}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <div class="small text-secondary">Clientes</div>
+            <div class="fs-3 fw-semibold">{{ cuentas.cliente }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <div class="small text-secondary">Barberos</div>
+            <div class="fs-3 fw-semibold">{{ cuentas.barbero }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <div class="small text-secondary">Administradores</div>
+            <div class="fs-3 fw-semibold">{{ cuentas.administrador }}</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <div class="small text-secondary">Cuentas por revisar</div>
+            <div class="fs-3 fw-semibold">{{ cuentas.por_revisar }}</div>
+            <div class="small text-secondary">Tienen más de un rol de negocio.</div>
+        </div></div>
+    </div>
+</div>
+<p class="small text-secondary mt-n3 mb-4">Los totales de cuentas son globales y no dependen de la fecha elegida.</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <h2 class="h5 mb-1">Citas del {{ fecha|date:'d/m/Y' }}</h2>
+            <p class="small text-secondary mb-3">Total: {{ total_dia }}. Se cuentan todas las que empiezan en esa fecha local, sin importar su estado.</p>
+            {% if citas %}
+            <div class="table-responsive">
+                <table class="table align-middle bg-white">
+                    <thead><tr><th>Hora</th><th>Cliente</th><th>Barbero</th><th>Servicio reservado</th><th>Estado</th></tr></thead>
+                    <tbody>
+                    {% for cita in citas %}
+                        <tr>
+                            <td>{{ cita.fecha_inicio|time:'H:i' }}</td>
+                            <td>{{ cita.cliente.get_full_name|default:cita.cliente.username }}</td>
+                            <td>{{ cita.barbero.usuario.get_full_name|default:cita.barbero.usuario.username }}</td>
+                            <td>{{ cita.nombre_servicio_reservado }}</td>
+                            <td><span class="badge bg-secondary">{{ cita.get_estado_display }}</span></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-secondary">No hay citas para esta fecha.</p>
+            {% endif %}
+        </div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100"><div class="card-body">
+            <h2 class="h5 mb-1">Distribución por estado del {{ fecha|date:'d/m/Y' }}</h2>
+            <p class="small text-secondary mb-3">Solo citas de la fecha elegida; no representa cobros.</p>
+            <div class="table-responsive">
+                <table class="table align-middle bg-white">
+                    <thead><tr><th>Estado</th><th class="text-end">Citas</th></tr></thead>
+                    <tbody>
+                    {% for estado in estados %}
+                        <tr><td>{{ estado.nombre }}</td><td class="text-end">{{ estado.total }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div></div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h2 class="h5 mb-1">Listado general de citas</h2>
+        <p class="small text-secondary mb-3">
+            {% if ver_todas %}Se muestran todas las fechas.{% else %}Se muestran las citas de la fecha elegida.{% endif %}
+            Ordenadas por inicio. Los datos de servicio son los guardados al reservar.
+        </p>
+        {% if listado %}
+        <div class="table-responsive">
+            <table class="table align-middle bg-white">
+                <thead><tr><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Barbero</th><th>Servicio reservado</th><th>Estado</th></tr></thead>
+                <tbody>
+                {% for cita in listado %}
+                    <tr>
+                        <td>{{ cita.fecha_inicio|date:'d/m/Y' }}</td>
+                        <td>{{ cita.fecha_inicio|time:'H:i' }}</td>
+                        <td>{{ cita.cliente.get_full_name|default:cita.cliente.username }}</td>
+                        <td>{{ cita.barbero.usuario.get_full_name|default:cita.barbero.usuario.username }}</td>
+                        <td>{{ cita.nombre_servicio_reservado }}</td>
+                        <td><span class="badge bg-secondary">{{ cita.get_estado_display }}</span></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-secondary">No hay citas registradas para este filtro.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
